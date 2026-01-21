@@ -28,6 +28,9 @@ Run the app:
 streamlit run app.py
 ```
 
+## Troubleshooting
+- **ModuleNotFoundError: plotly**: confirm `requirements.txt` is installed and redeploy. If hosting on Streamlit Cloud, trigger a reboot after updating dependencies.
+
 ## Portfolio Deployment Options
 - **Streamlit Community Cloud** (fastest)
   1. Push this repo to GitHub.

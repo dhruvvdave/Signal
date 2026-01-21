@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import importlib.util
+
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 import data_loader
@@ -33,6 +33,18 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+def require_dependency(module_name: str, install_hint: str) -> None:
+    """Ensure a dependency is available before importing it."""
+    if importlib.util.find_spec(module_name) is None:
+        st.error(f"Missing dependency: `{module_name}`. {install_hint}")
+        st.stop()
+
+
+require_dependency("plotly", "Install it with `pip install plotly` and restart the app.")
+import plotly.express as px
+import plotly.graph_objects as go
 
 
 @st.cache_data(ttl=3600)
