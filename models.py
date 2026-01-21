@@ -46,6 +46,8 @@ def find_player_comps(
     feature_cols: list[str],
 ) -> pd.DataFrame:
     """Return the top 3 similar players for a given player."""
+    if stats.empty or any(col not in stats.columns for col in feature_cols):
+        return pd.DataFrame()
     model, scaler = build_similarity_model(stats, feature_cols)
     player_row = stats[stats["Player"] == player_name]
     if player_row.empty:
@@ -64,7 +66,10 @@ def build_prop_validator(game_log: pd.DataFrame, stat_col: str = "PTS") -> pd.Da
     if game_log.empty or stat_col not in game_log.columns:
         return pd.DataFrame()
 
-    sorted_games = game_log.sort_values("GAME_DATE")
+    if "GAME_DATE" in game_log.columns:
+        sorted_games = game_log.sort_values("GAME_DATE")
+    else:
+        sorted_games = game_log.copy()
     sorted_games["Rolling_Avg"] = compute_rolling_average(sorted_games[stat_col], window=5)
     season_avg = safe_mean(sorted_games[stat_col])
     sorted_games["Season_Avg"] = season_avg

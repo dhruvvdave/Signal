@@ -68,9 +68,15 @@ with st.sidebar:
     season = st.selectbox("Season", seasons, index=0, format_func=format_season_label)
 
     teams_df = load_active_teams()
+    if teams_df.empty:
+        st.error("Unable to load teams. Please check your NBA API connectivity.")
+        st.stop()
     team_name = st.selectbox("Team", teams_df["full_name"].sort_values().tolist())
 
     players_df = load_active_players()
+    if players_df.empty:
+        st.error("Unable to load players. Please check your NBA API connectivity.")
+        st.stop()
     player_name = st.selectbox("Player", players_df["full_name"].sort_values().tolist())
 
 
@@ -87,7 +93,8 @@ if player_id is None:
     st.error("Player not found. Try another selection.")
     st.stop()
 
-player_log = load_player_log(player_id, season)
+with st.spinner("Loading player analytics..."):
+    player_log = load_player_log(player_id, season)
 if player_log.empty:
     st.warning("No game log data available for this player/season.")
 
@@ -104,13 +111,22 @@ if not player_log.empty:
     assists_avg = safe_mean(player_log["AST"])
     rebounds_avg = safe_mean(player_log["REB"])
     minutes_avg = safe_mean(player_log["MIN"])
+    recent_points = safe_mean(player_log.sort_values("GAME_DATE").tail(5)["PTS"])
+    recent_assists = safe_mean(player_log.sort_values("GAME_DATE").tail(5)["AST"])
+    recent_rebounds = safe_mean(player_log.sort_values("GAME_DATE").tail(5)["REB"])
+    recent_minutes = safe_mean(player_log.sort_values("GAME_DATE").tail(5)["MIN"])
+    points_delta = f"{recent_points - points_avg:+.1f}"
+    assists_delta = f"{recent_assists - assists_avg:+.1f}"
+    rebounds_delta = f"{recent_rebounds - rebounds_avg:+.1f}"
+    minutes_delta = f"{recent_minutes - minutes_avg:+.1f}"
 else:
     points_avg = assists_avg = rebounds_avg = minutes_avg = 0.0
+    points_delta = assists_delta = rebounds_delta = minutes_delta = "+0.0"
 
-metrics_cols[0].metric("Points", f"{points_avg:.1f}", "▲ 1.2")
-metrics_cols[1].metric("Assists", f"{assists_avg:.1f}", "▲ 0.4")
-metrics_cols[2].metric("Rebounds", f"{rebounds_avg:.1f}", "▼ 0.3")
-metrics_cols[3].metric("Minutes", f"{minutes_avg:.1f}", "▲ 0.8")
+metrics_cols[0].metric("Points", f"{points_avg:.1f}", points_delta)
+metrics_cols[1].metric("Assists", f"{assists_avg:.1f}", assists_delta)
+metrics_cols[2].metric("Rebounds", f"{rebounds_avg:.1f}", rebounds_delta)
+metrics_cols[3].metric("Minutes", f"{minutes_avg:.1f}", minutes_delta)
 
 
 left_col, right_col = st.columns([1.1, 1])

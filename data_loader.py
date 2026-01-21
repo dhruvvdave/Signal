@@ -39,13 +39,19 @@ def get_team_id(team_name: str) -> Optional[int]:
 
 def list_active_players() -> pd.DataFrame:
     """Return a DataFrame of active NBA players."""
-    data = players.get_active_players()
+    try:
+        data = players.get_active_players()
+    except Exception:
+        return pd.DataFrame()
     return pd.DataFrame(data)
 
 
 def list_active_teams() -> pd.DataFrame:
     """Return a DataFrame of NBA teams."""
-    data = teams.get_teams()
+    try:
+        data = teams.get_teams()
+    except Exception:
+        return pd.DataFrame()
     return pd.DataFrame(data)
 
 
@@ -64,12 +70,15 @@ def load_player_game_log(
     Returns:
         Cleaned pandas DataFrame with parsed dates and numeric columns.
     """
-    response = playergamelog.PlayerGameLog(
-        player_id=player_id,
-        season=season,
-        season_type_all_star=season_type,
-    )
-    data = response.get_data_frames()[0]
+    try:
+        response = playergamelog.PlayerGameLog(
+            player_id=player_id,
+            season=season,
+            season_type_all_star=season_type,
+        )
+        data = response.get_data_frames()[0]
+    except Exception:
+        return pd.DataFrame()
     return _clean_game_log(data)
 
 
@@ -79,12 +88,15 @@ def load_team_game_log(
     season_type: str = DEFAULT_SEASON_TYPE,
 ) -> pd.DataFrame:
     """Fetch and clean a team's game log for a given season."""
-    response = teamgamelog.TeamGameLog(
-        team_id=team_id,
-        season=season,
-        season_type_all_star=season_type,
-    )
-    data = response.get_data_frames()[0]
+    try:
+        response = teamgamelog.TeamGameLog(
+            team_id=team_id,
+            season=season,
+            season_type_all_star=season_type,
+        )
+        data = response.get_data_frames()[0]
+    except Exception:
+        return pd.DataFrame()
     return _clean_game_log(data)
 
 
@@ -93,12 +105,15 @@ def load_league_player_stats(
     season_type: str = DEFAULT_SEASON_TYPE,
 ) -> pd.DataFrame:
     """Load league-wide player stats for similarity comparisons."""
-    response = leaguedashplayerstats.LeagueDashPlayerStats(
-        season=season,
-        season_type_all_star=season_type,
-        per_mode_detailed="PerGame",
-    )
-    data = response.get_data_frames()[0]
+    try:
+        response = leaguedashplayerstats.LeagueDashPlayerStats(
+            season=season,
+            season_type_all_star=season_type,
+            per_mode_detailed="PerGame",
+        )
+        data = response.get_data_frames()[0]
+    except Exception:
+        return pd.DataFrame()
     return _clean_league_stats(data, season=season)
 
 
@@ -126,7 +141,7 @@ def _clean_game_log(data: pd.DataFrame) -> pd.DataFrame:
             cleaned[col] = pd.to_numeric(cleaned[col], errors="coerce")
 
     if "MATCHUP" in cleaned.columns:
-        cleaned["IS_HOME"] = cleaned["MATCHUP"].str.contains("vs.")
+        cleaned["IS_HOME"] = cleaned["MATCHUP"].str.contains("vs.", na=False)
 
     return cleaned
 
