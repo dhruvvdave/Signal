@@ -111,13 +111,6 @@ if player_log.empty:
     st.warning("No game log data available for this player/season.")
 
 league_stats = load_league_stats(season)
-desired_features = ["Points", "Assists", "Rebounds", "UsageRate", "TrueShootingPct"]
-if league_stats.empty:
-    league_stats = pd.DataFrame(columns=["Player", "Team", *desired_features])
-else:
-    for col in desired_features:
-        if col not in league_stats.columns:
-            league_stats[col] = 0.0
 
 team_log = pd.DataFrame()
 if team_id is not None:
@@ -185,15 +178,14 @@ with left_col:
 
 with right_col:
     st.markdown("### Player Similarity (Comp Engine)")
+    desired_features = ["Points", "Assists", "Rebounds", "UsageRate", "TrueShootingPct"]
     feature_cols = [col for col in desired_features if col in league_stats.columns]
     comps = models.find_player_comps(league_stats, player_name, feature_cols)
     if comps.empty:
         st.info("Similarity comps are not available for this player yet.")
     else:
-        display_cols = ["Player", "Team", "Points", "Assists", "Rebounds", "SimilarityScore"]
-        display_cols = [col for col in display_cols if col in comps.columns]
         st.dataframe(
-            comps[display_cols]
+            comps[["Player", "Team", "Points", "Assists", "Rebounds", "SimilarityScore"]]
             .sort_values("SimilarityScore", ascending=False)
             .reset_index(drop=True),
             width="stretch",
