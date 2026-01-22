@@ -174,11 +174,12 @@ with left_col:
         )
     )
     gauge.update_layout(height=260, margin=dict(l=20, r=20, t=20, b=20), paper_bgcolor="#0E1117")
-    st.plotly_chart(gauge, use_container_width=True)
+    st.plotly_chart(gauge, width="stretch")
 
 with right_col:
     st.markdown("### Player Similarity (Comp Engine)")
-    feature_cols = ["Points", "Assists", "Rebounds", "UsageRate", "TrueShootingPct"]
+    desired_features = ["Points", "Assists", "Rebounds", "UsageRate", "TrueShootingPct"]
+    feature_cols = [col for col in desired_features if col in league_stats.columns]
     comps = models.find_player_comps(league_stats, player_name, feature_cols)
     if comps.empty:
         st.info("Similarity comps are not available for this player yet.")
@@ -187,7 +188,7 @@ with right_col:
             comps[["Player", "Team", "Points", "Assists", "Rebounds", "SimilarityScore"]]
             .sort_values("SimilarityScore", ascending=False)
             .reset_index(drop=True),
-            use_container_width=True,
+            width="stretch",
         )
 
 
@@ -208,7 +209,7 @@ else:
         return [color] * len(row)
 
     styled = prop_table.style.apply(highlight_signal, axis=1)
-    st.dataframe(styled, use_container_width=True)
+    st.dataframe(styled, width="stretch")
 
 
 trends_tab, advanced_tab = st.tabs(["Trends", "Advanced"])
@@ -232,11 +233,11 @@ with trends_tab:
             plot_bgcolor="#0E1117",
             height=320,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 with advanced_tab:
     st.markdown("### Player vs League Average Radar")
-    if league_stats.empty:
+    if league_stats.empty or not feature_cols:
         st.info("League stats not available.")
     else:
         player_row = league_stats[league_stats["Player"] == player_name]
@@ -278,6 +279,6 @@ with advanced_tab:
                 height=360,
                 margin=dict(l=40, r=40, t=40, b=40),
             )
-            st.plotly_chart(radar_fig, use_container_width=True)
+            st.plotly_chart(radar_fig, width="stretch")
 
 st.caption("Signal Sports Analytics • MVP build for portfolio")

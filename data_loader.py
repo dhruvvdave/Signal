@@ -121,7 +121,11 @@ def _clean_game_log(data: pd.DataFrame) -> pd.DataFrame:
     """Standardize game log fields for downstream analytics."""
     cleaned = data.copy()
     if "GAME_DATE" in cleaned.columns:
-        cleaned["GAME_DATE"] = pd.to_datetime(cleaned["GAME_DATE"], errors="coerce")
+        cleaned["GAME_DATE"] = pd.to_datetime(
+            cleaned["GAME_DATE"],
+            format="%Y-%m-%d",
+            errors="coerce",
+        )
 
     numeric_cols = [
         "PTS",
@@ -160,9 +164,12 @@ def _clean_league_stats(data: pd.DataFrame, season: str) -> pd.DataFrame:
     }
     cleaned = cleaned.rename(columns=rename_map)
 
-    for col in ["Points", "Assists", "Rebounds", "UsageRate", "TrueShootingPct"]:
+    metric_cols = ["Points", "Assists", "Rebounds", "UsageRate", "TrueShootingPct"]
+    for col in metric_cols:
         if col in cleaned.columns:
             cleaned[col] = pd.to_numeric(cleaned[col], errors="coerce")
+        else:
+            cleaned[col] = 0.0
 
     cleaned["Season"] = season
     cleaned["LastUpdated"] = datetime.utcnow()
