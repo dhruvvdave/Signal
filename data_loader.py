@@ -3,22 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-import importlib.util
 from typing import Optional
 
 import pandas as pd
-
-NBA_API_AVAILABLE = importlib.util.find_spec("nba_api") is not None
-
-
-def _load_nba_api_modules():
-    """Lazily import nba_api modules when available."""
-    if not NBA_API_AVAILABLE:
-        return None
-    from nba_api.stats.endpoints import leaguedashplayerstats, playergamelog, teamgamelog
-    from nba_api.stats.static import players, teams
-
-    return leaguedashplayerstats, playergamelog, teamgamelog, players, teams
+from nba_api.stats.endpoints import leaguedashplayerstats, playergamelog, teamgamelog
+from nba_api.stats.static import players, teams
 
 
 DEFAULT_SEASON = "2023-24"
@@ -34,12 +23,6 @@ def get_player_id(player_name: str) -> Optional[int]:
     Returns:
         The NBA player ID if found, otherwise None.
     """
-    if not NBA_API_AVAILABLE:
-        return None
-    modules = _load_nba_api_modules()
-    if modules is None:
-        return None
-    _, _, _, players, _ = modules
     matches = players.find_players_by_full_name(player_name)
     if not matches:
         return None
@@ -48,12 +31,6 @@ def get_player_id(player_name: str) -> Optional[int]:
 
 def get_team_id(team_name: str) -> Optional[int]:
     """Return the NBA team ID for a given full name."""
-    if not NBA_API_AVAILABLE:
-        return None
-    modules = _load_nba_api_modules()
-    if modules is None:
-        return None
-    _, _, _, _, teams = modules
     matches = [team for team in teams.get_teams() if team["full_name"] == team_name]
     if not matches:
         return None
@@ -62,12 +39,6 @@ def get_team_id(team_name: str) -> Optional[int]:
 
 def list_active_players() -> pd.DataFrame:
     """Return a DataFrame of active NBA players."""
-    if not NBA_API_AVAILABLE:
-        return pd.DataFrame()
-    modules = _load_nba_api_modules()
-    if modules is None:
-        return pd.DataFrame()
-    _, _, _, players, _ = modules
     try:
         data = players.get_active_players()
     except Exception:
@@ -77,12 +48,6 @@ def list_active_players() -> pd.DataFrame:
 
 def list_active_teams() -> pd.DataFrame:
     """Return a DataFrame of NBA teams."""
-    if not NBA_API_AVAILABLE:
-        return pd.DataFrame()
-    modules = _load_nba_api_modules()
-    if modules is None:
-        return pd.DataFrame()
-    _, _, _, _, teams = modules
     try:
         data = teams.get_teams()
     except Exception:
@@ -105,12 +70,6 @@ def load_player_game_log(
     Returns:
         Cleaned pandas DataFrame with parsed dates and numeric columns.
     """
-    if not NBA_API_AVAILABLE:
-        return pd.DataFrame()
-    modules = _load_nba_api_modules()
-    if modules is None:
-        return pd.DataFrame()
-    _, playergamelog, _, _, _ = modules
     try:
         response = playergamelog.PlayerGameLog(
             player_id=player_id,
@@ -129,12 +88,6 @@ def load_team_game_log(
     season_type: str = DEFAULT_SEASON_TYPE,
 ) -> pd.DataFrame:
     """Fetch and clean a team's game log for a given season."""
-    if not NBA_API_AVAILABLE:
-        return pd.DataFrame()
-    modules = _load_nba_api_modules()
-    if modules is None:
-        return pd.DataFrame()
-    _, _, teamgamelog, _, _ = modules
     try:
         response = teamgamelog.TeamGameLog(
             team_id=team_id,
@@ -152,12 +105,6 @@ def load_league_player_stats(
     season_type: str = DEFAULT_SEASON_TYPE,
 ) -> pd.DataFrame:
     """Load league-wide player stats for similarity comparisons."""
-    if not NBA_API_AVAILABLE:
-        return pd.DataFrame()
-    modules = _load_nba_api_modules()
-    if modules is None:
-        return pd.DataFrame()
-    leaguedashplayerstats, _, _, _, _ = modules
     try:
         response = leaguedashplayerstats.LeagueDashPlayerStats(
             season=season,
