@@ -30,7 +30,6 @@ streamlit run app.py
 
 ## Troubleshooting
 - **ModuleNotFoundError: plotly**: confirm `requirements.txt` is installed and redeploy. If hosting on Streamlit Cloud, trigger a reboot after updating dependencies.
-- **ModuleNotFoundError: nba_api**: ensure `nba_api` is listed in `requirements.txt` and reinstall dependencies before restarting the app.
 
 ## Portfolio Deployment Options
 - **Streamlit Community Cloud** (fastest)
