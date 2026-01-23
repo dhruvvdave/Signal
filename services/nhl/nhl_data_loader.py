@@ -24,17 +24,17 @@ class NHLDataLoader(BaseDataLoader):
         self.players_cache = None
 
     def list_active_players(self) -> pd.DataFrame:
-        """Return a DataFrame of active NHL players."""
+        """Return a DataFrame of active NHL players.
+        
+        Note: NHL API doesn't have a simple "all active players" endpoint.
+        Full player roster aggregation pending API implementation.
+        """
         try:
-            import requests
-            # For now, we'll return a sample structure
-            # In production, this would fetch from NHL API
-            # The NHL API doesn't have a simple "all active players" endpoint
-            # We'd need to aggregate from team rosters
             if self.players_cache is not None:
                 return self.players_cache
 
             # Initialize with empty DataFrame with proper structure
+            # TODO: Aggregate from team rosters when NHL API is fully integrated
             self.players_cache = pd.DataFrame(columns=["id", "full_name", "team"])
             return self.players_cache
         except Exception:
@@ -43,12 +43,10 @@ class NHLDataLoader(BaseDataLoader):
     def list_active_teams(self) -> pd.DataFrame:
         """Return a DataFrame of NHL teams."""
         try:
-            import requests
-
             if self.teams_cache is not None:
                 return self.teams_cache
 
-            # Hardcoded NHL teams for reliability (31 teams as of 2023-24)
+            # Current NHL teams for 2023-24 season (32 teams)
             teams_data = [
                 {"id": 1, "full_name": "New Jersey Devils", "abbreviation": "NJD"},
                 {"id": 2, "full_name": "New York Islanders", "abbreviation": "NYI"},
@@ -79,7 +77,7 @@ class NHLDataLoader(BaseDataLoader):
                 {"id": 29, "full_name": "Columbus Blue Jackets", "abbreviation": "CBJ"},
                 {"id": 30, "full_name": "Minnesota Wild", "abbreviation": "MIN"},
                 {"id": 52, "full_name": "Winnipeg Jets", "abbreviation": "WPG"},
-                {"id": 53, "full_name": "Arizona Coyotes", "abbreviation": "ARI"},
+                {"id": 53, "full_name": "Utah Hockey Club", "abbreviation": "UTA"},
                 {"id": 54, "full_name": "Vegas Golden Knights", "abbreviation": "VGK"},
                 {"id": 55, "full_name": "Seattle Kraken", "abbreviation": "SEA"},
             ]
@@ -111,26 +109,19 @@ class NHLDataLoader(BaseDataLoader):
         season: str = None,
         season_type: str = None,
     ) -> pd.DataFrame:
-        """Fetch and clean a player's game log for a given season."""
+        """Fetch and clean a player's game log for a given season.
+        
+        Note: Full NHL API integration pending. This method returns empty DataFrame
+        until NHL API endpoints are properly configured.
+        """
         if season is None:
             season = self.DEFAULT_SEASON
         if season_type is None:
             season_type = self.DEFAULT_SEASON_TYPE
 
-        try:
-            import requests
-
-            # NHL API endpoint for player game log
-            # This is a placeholder - actual implementation would use NHL API
-            # url = f"{self.base_url}/player/{player_id}/game-log/{season}/2"
-            # response = requests.get(url, timeout=10)
-            # if response.status_code == 200:
-            #     data = response.json()
-            #     return self._clean_game_log(pd.DataFrame(data.get("gameLog", [])))
-
-            return pd.DataFrame()
-        except Exception:
-            return pd.DataFrame()
+        # TODO: Implement NHL API call when endpoints are finalized
+        # Placeholder for future implementation
+        return pd.DataFrame()
 
     def load_team_game_log(
         self,
@@ -138,36 +129,38 @@ class NHLDataLoader(BaseDataLoader):
         season: str = None,
         season_type: str = None,
     ) -> pd.DataFrame:
-        """Fetch and clean a team's game log for a given season."""
+        """Fetch and clean a team's game log for a given season.
+        
+        Note: Full NHL API integration pending. This method returns empty DataFrame
+        until NHL API endpoints are properly configured.
+        """
         if season is None:
             season = self.DEFAULT_SEASON
         if season_type is None:
             season_type = self.DEFAULT_SEASON_TYPE
 
-        try:
-            # NHL API endpoint for team schedule/game log
-            # This is a placeholder - actual implementation would use NHL API
-            return pd.DataFrame()
-        except Exception:
-            return pd.DataFrame()
+        # TODO: Implement NHL API call when endpoints are finalized
+        # Placeholder for future implementation
+        return pd.DataFrame()
 
     def load_league_player_stats(
         self,
         season: str = None,
         season_type: str = None,
     ) -> pd.DataFrame:
-        """Load league-wide player stats for similarity comparisons."""
+        """Load league-wide player stats for similarity comparisons.
+        
+        Note: Full NHL API integration pending. This method returns empty DataFrame
+        until NHL API endpoints are properly configured.
+        """
         if season is None:
             season = self.DEFAULT_SEASON
         if season_type is None:
             season_type = self.DEFAULT_SEASON_TYPE
 
-        try:
-            # NHL API endpoint for league stats
-            # This is a placeholder - actual implementation would use NHL API
-            return pd.DataFrame()
-        except Exception:
-            return pd.DataFrame()
+        # TODO: Implement NHL API call when endpoints are finalized
+        # Placeholder for future implementation
+        return pd.DataFrame()
 
     def get_stat_columns(self) -> dict[str, list[str]]:
         """Return NHL-specific stat column mappings."""

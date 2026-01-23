@@ -177,34 +177,54 @@ else:  # NHL
     team_id = loader.get_team_id(team_name)
 
 
-# Skip detailed analytics for NHL demo (data not available yet)
+# Skip detailed analytics for NHL demo (data integration in progress)
 if sport == "NHL":
-    st.info("🚧 **NHL Analytics Dashboard Coming Soon!**")
+    st.info("🚧 **NHL Analytics Dashboard - Demo Mode**")
     st.markdown("""
-    ### Planned NHL Features:
-    - **Skater Metrics**: Goals, Assists, Points, +/-, Shots, Time on Ice, Faceoff %, Hits, Blocks
-    - **Goalie Metrics**: Saves, Save %, GAA, Shutouts, Quality Starts
-    - **Advanced Stats**: Corsi, Fenwick, Expected Goals (xG), PDO, CF%
-    - **Team Analysis**: Power play/penalty kill stats, lineup combinations
-    - **Heat Maps**: Ice time distribution, shooting locations
-    - **Game Flow**: Score effects, momentum tracking
+    ### Welcome to NHL Integration Preview!
     
-    *NHL data integration is in progress. Select NBA to see the full analytics platform.*
+    The NHL module is currently in **demo mode** with team data available. Full player analytics are being integrated.
+    
+    #### ✅ Currently Available:
+    - NHL team listings (32 teams)
+    - Sport-specific UI theming
+    - Modular architecture ready for data integration
+    
+    #### 🔜 Coming Soon:
+    **Skater Metrics**
+    - Goals, Assists, Points, +/-, Shots
+    - Time on Ice, Faceoff %, Hits, Blocks
+    
+    **Goalie Metrics**
+    - Saves, Save %, GAA, Shutouts
+    - Quality Starts, High Danger Saves
+    
+    **Advanced Stats**
+    - Corsi, Fenwick, Expected Goals (xG)
+    - PDO, CF%, Zone Starts
+    
+    **Team Analysis**
+    - Power play/penalty kill stats
+    - Lineup combinations
+    - Shot charts and heat maps
+    
+    **Switch to NBA** to see the full analytics platform in action with live data!
     """)
     
     # Show team info for NHL
     st.markdown(f"### 🏒 {team_name}")
-    st.markdown(f"**Season:** {season}")
-    
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Team ID", team_id if team_id else "N/A")
     with col2:
-        st.metric("Conference", "TBD")
+        st.metric("Season", season)
     with col3:
-        st.metric("Division", "TBD")
+        st.metric("League", "NHL")
+    with col4:
+        st.metric("Teams", "32")
     
-    st.caption("Signal Sports Analytics • Multi-Sport Platform in Development")
+    st.markdown("---")
+    st.caption("Signal Sports Analytics • Multi-Sport Platform • NHL Integration in Progress")
     st.stop()
 
 
