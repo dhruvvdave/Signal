@@ -2,6 +2,20 @@
 base = "dark"
 primaryColor = "#00FFAA"
 backgroundColor = "#0E1117"
-secondaryBackgroundColor = "#111827"
+secondaryBackgroundColor = "#1a1f2e"
 textColor = "#FAFAFA"
 font = "sans serif"
+
+[server]
+headless = true
+port = 8501
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[runner]
+magicEnabled = true
+fastReruns = true
