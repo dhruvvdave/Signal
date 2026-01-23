@@ -147,7 +147,17 @@ with left_col:
     st.markdown("### Fatigue Factor")
     if not team_log.empty:
         latest_game = team_log.sort_values("GAME_DATE").iloc[-1]
-        rest_days = max((pd.Timestamp.utcnow().date() - latest_game["GAME_DATE"].date()).days, 0)
+        
+        # Safely calculate rest days with null checking
+        game_date = latest_game.get("GAME_DATE")
+        if pd.notna(game_date):
+            try:
+                rest_days = max((pd.Timestamp.utcnow().date() - pd.Timestamp(game_date).date()).days, 0)
+            except (TypeError, AttributeError, ValueError):
+                rest_days = 1  # Default fallback
+        else:
+            rest_days = 1  # Default fallback if date is missing
+        
         fatigue_inputs = models.FatigueInputs(
             rest_days=rest_days,
             is_home=bool(latest_game.get("IS_HOME", True)),
