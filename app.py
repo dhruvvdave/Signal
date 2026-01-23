@@ -298,108 +298,151 @@ with left_col:
     st.plotly_chart(gauge, width="stretch")
 
 with right_col:
-    st.markdown("### Player Similarity (Comp Engine)")
-    desired_features = ["Points", "Assists", "Rebounds", "UsageRate", "TrueShootingPct"]
-    feature_cols = [col for col in desired_features if col in league_stats.columns]
-    comps = models.find_player_comps(league_stats, player_name, feature_cols)
-    if comps.empty:
-        st.info("Similarity comps are not available for this player yet.")
+    st.markdown("### 🎲 Prop Validator (Anomaly Detection)")
+    prop_data = models.build_prop_validator(player_log, stat_col="PTS")
+    if prop_data.empty:
+        st.info("No prop validator data available.")
     else:
-        st.dataframe(
-            comps[["Player", "Team", "Points", "Assists", "Rebounds", "SimilarityScore"]]
-            .sort_values("SimilarityScore", ascending=False)
-            .reset_index(drop=True),
-            width="stretch",
-        )
+        display_cols = ["GAME_DATE", "PTS", "Rolling_Avg", "Season_Avg", "Signal"]
+        prop_table = prop_data[display_cols].copy()
+
+        def highlight_signal(row: pd.Series) -> list[str]:
+            color = ""
+            if row["Signal"] == "Hot Streak":
+                color = "background-color: rgba(0, 255, 170, 0.2)"
+            elif row["Signal"] == "Cold Streak":
+                color = "background-color: rgba(255, 75, 75, 0.2)"
+            return [color] * len(row)
+
+        styled = prop_table.tail(10).style.apply(highlight_signal, axis=1)
+        st.dataframe(styled, use_container_width=True)
 
 
-st.markdown("### Prop Validator (Anomaly Detection)")
-prop_data = models.build_prop_validator(player_log, stat_col="PTS")
-if prop_data.empty:
-    st.info("No prop validator data available.")
-else:
-    display_cols = ["GAME_DATE", "PTS", "Rolling_Avg", "Season_Avg", "Signal"]
-    prop_table = prop_data[display_cols].copy()
+st.markdown("---")  # Visual separator
 
-    def highlight_signal(row: pd.Series) -> list[str]:
-        color = ""
-        if row["Signal"] == "Hot Streak":
-            color = "background-color: rgba(0, 255, 170, 0.2)"
-        elif row["Signal"] == "Cold Streak":
-            color = "background-color: rgba(255, 75, 75, 0.2)"
-        return [color] * len(row)
-
-    styled = prop_table.style.apply(highlight_signal, axis=1)
-    st.dataframe(styled, width="stretch")
-
-
-trends_tab, advanced_tab = st.tabs(["Trends", "Advanced"])
+trends_tab, advanced_tab, analytics_tab, comparisons_tab = st.tabs(
+    ["📈 Trends", "🎯 Advanced Stats", "📊 Analytics", "⚖️ Comparisons"]
+)
 
 with trends_tab:
-    st.markdown("### Player Performance Trends")
+    st.markdown("<div class='section-header'>Player Performance Trends</div>", unsafe_allow_html=True)
     if player_log.empty:
         st.info("No recent games available.")
     else:
-        last_10 = player_log.sort_values("GAME_DATE").tail(10)
-        fig = px.line(
-            last_10,
-            x="GAME_DATE",
-            y="PTS",
-            markers=True,
-            title=f"{player_name} - Points (Last 10 Games)",
+        # Import enhanced visualizations
+        from components.shared.visualizations import (
+            create_performance_trend_chart,
+            create_distribution_chart,
+            create_multi_stat_comparison,
         )
-        fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#0E1117",
-            plot_bgcolor="#0E1117",
-            height=320,
+
+        # Performance trend chart
+        trend_fig = create_performance_trend_chart(
+            player_log, "PTS", player_name, sport, show_rolling_avg=True
         )
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(trend_fig, use_container_width=True)
+
+        # Multi-stat comparison
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            multi_stat_fig = create_multi_stat_comparison(
+                player_log, ["PTS", "AST", "REB", "MIN"], player_name, sport
+            )
+            st.plotly_chart(multi_stat_fig, use_container_width=True)
+
+        with col2:
+            # Distribution chart
+            dist_fig = create_distribution_chart(player_log, "PTS", player_name, sport)
+            st.plotly_chart(dist_fig, use_container_width=True)
 
 with advanced_tab:
-    st.markdown("### Player vs League Average Radar")
+    st.markdown("<div class='section-header'>Player vs League Average Radar</div>", unsafe_allow_html=True)
     if league_stats.empty or not feature_cols:
         st.info("League stats not available.")
     else:
+        from components.shared.visualizations import create_enhanced_radar_chart
+
         player_row = league_stats[league_stats["Player"] == player_name]
         league_avg = league_stats[feature_cols].mean(numeric_only=True)
         if player_row.empty:
             st.info("Player not found in league stats.")
         else:
             player_values = player_row.iloc[0][feature_cols]
-            radar_df = pd.DataFrame(
+            
+            # Enhanced radar chart
+            radar_fig = create_enhanced_radar_chart(
+                player_values, league_avg, feature_cols, player_name, sport
+            )
+            st.plotly_chart(radar_fig, use_container_width=True)
+
+            # Advanced stats table
+            st.markdown("### 📊 Detailed Statistics")
+            stats_df = pd.DataFrame(
                 {
                     "Metric": feature_cols,
                     "Player": player_values.values,
-                    "League Average": league_avg.values,
+                    "League Avg": league_avg.values,
+                    "Percentile": [
+                        (league_stats[col] < player_values[col]).sum() / len(league_stats) * 100
+                        for col in feature_cols
+                    ],
                 }
             )
-            radar_fig = go.Figure()
-            radar_fig.add_trace(
-                go.Scatterpolar(
-                    r=radar_df["Player"],
-                    theta=radar_df["Metric"],
-                    fill="toself",
-                    name=player_name,
-                    line_color="#00FFAA",
-                )
+            stats_df["Percentile"] = stats_df["Percentile"].apply(lambda x: f"{x:.0f}%")
+            st.dataframe(stats_df, use_container_width=True)
+
+with analytics_tab:
+    st.markdown("<div class='section-header'>Performance Analytics</div>", unsafe_allow_html=True)
+    if player_log.empty:
+        st.info("No game data available for analytics.")
+    else:
+        from components.shared.visualizations import create_home_away_comparison
+
+        # Home vs Away performance
+        home_away_fig = create_home_away_comparison(
+            player_log, ["PTS", "AST", "REB"], player_name, sport
+        )
+        st.plotly_chart(home_away_fig, use_container_width=True)
+
+        # Recent form analysis
+        st.markdown("### 🔥 Recent Form")
+        last_5 = player_log.sort_values("GAME_DATE").tail(5)
+        last_10 = player_log.sort_values("GAME_DATE").tail(10)
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric(
+                "Last 5 Games PPG",
+                f"{safe_mean(last_5['PTS']):.1f}",
+                f"{safe_mean(last_5['PTS']) - points_avg:+.1f}",
             )
-            radar_fig.add_trace(
-                go.Scatterpolar(
-                    r=radar_df["League Average"],
-                    theta=radar_df["Metric"],
-                    fill="toself",
-                    name="League Avg",
-                    line_color="#FF4B4B",
-                )
+        with col2:
+            st.metric(
+                "Last 10 Games PPG",
+                f"{safe_mean(last_10['PTS']):.1f}",
+                f"{safe_mean(last_10['PTS']) - points_avg:+.1f}",
             )
-            radar_fig.update_layout(
-                polar=dict(bgcolor="#0E1117"),
-                showlegend=True,
-                template="plotly_dark",
-                height=360,
-                margin=dict(l=40, r=40, t=40, b=40),
-            )
-            st.plotly_chart(radar_fig, width="stretch")
+        with col3:
+            hot_streak = (last_5["PTS"] > points_avg).sum()
+            st.metric("Hot Games (Last 5)", f"{hot_streak}/5")
+
+with comparisons_tab:
+    st.markdown("<div class='section-header'>Player Comparisons & Similarity</div>", unsafe_allow_html=True)
+    
+    # Player Similarity Engine
+    desired_features = ["Points", "Assists", "Rebounds", "UsageRate", "TrueShootingPct"]
+    feature_cols = [col for col in desired_features if col in league_stats.columns]
+    comps = models.find_player_comps(league_stats, player_name, feature_cols)
+    
+    if comps.empty:
+        st.info("Similarity comps are not available for this player yet.")
+    else:
+        st.markdown("### 🎯 Similar Players")
+        st.dataframe(
+            comps[["Player", "Team", "Points", "Assists", "Rebounds", "SimilarityScore"]]
+            .sort_values("SimilarityScore", ascending=False)
+            .reset_index(drop=True),
+            use_container_width=True,
+        )
 
 st.caption("Signal Sports Analytics • MVP build for portfolio")
