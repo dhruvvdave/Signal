@@ -9,29 +9,17 @@ import streamlit as st
 
 import data_loader
 import models
+from config.sport_config import SportConfig
+from services.shared.data_loader_factory import DataLoaderFactory
+from styles.glassmorphism import get_glassmorphism_css
 from utils import format_season_label, safe_mean
 
 
 st.set_page_config(
     page_title="Signal Sports Analytics",
+    page_icon="🏀",
     layout="wide",
     initial_sidebar_state="expanded",
-)
-
-
-st.markdown(
-    """
-    <style>
-        .stApp { background-color: #0E1117; color: #FAFAFA; }
-        .block-container { padding-top: 2rem; }
-        .metric-label { color: #FAFAFA; }
-        .signal-title { font-size: 2.2rem; font-weight: 700; }
-        .signal-subtitle { color: #9aa0a6; font-size: 1rem; }
-        [data-testid="stMetricValue"] { color: #00FFAA; }
-        [data-testid="stMetricDelta"] { color: #FF4B4B; }
-    </style>
-    """,
-    unsafe_allow_html=True,
 )
 
 
@@ -47,76 +35,198 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-@st.cache_data(ttl=3600)
-def load_active_players() -> pd.DataFrame:
-    return data_loader.list_active_players()
+# Initialize session state for sport selection
+if "sport" not in st.session_state:
+    st.session_state.sport = "NBA"
 
 
 @st.cache_data(ttl=3600)
-def load_active_teams() -> pd.DataFrame:
-    return data_loader.list_active_teams()
+def load_active_players(sport: str) -> pd.DataFrame:
+    """Load active players for the specified sport."""
+    if sport == "NBA":
+        return data_loader.list_active_players()
+    else:
+        # For NHL and other sports, use the data loader factory
+        loader = DataLoaderFactory.create_loader(sport)
+        return loader.list_active_players()
+
+
+@st.cache_data(ttl=3600)
+def load_active_teams(sport: str) -> pd.DataFrame:
+    """Load active teams for the specified sport."""
+    if sport == "NBA":
+        return data_loader.list_active_teams()
+    else:
+        loader = DataLoaderFactory.create_loader(sport)
+        return loader.list_active_teams()
 
 
 @st.cache_data(ttl=1800)
-def load_league_stats(season: str) -> pd.DataFrame:
-    return data_loader.load_league_player_stats(season=season)
+def load_league_stats(sport: str, season: str) -> pd.DataFrame:
+    """Load league stats for the specified sport."""
+    if sport == "NBA":
+        return data_loader.load_league_player_stats(season=season)
+    else:
+        loader = DataLoaderFactory.create_loader(sport)
+        return loader.load_league_player_stats(season=season)
 
 
 @st.cache_data(ttl=900)
-def load_player_log(player_id: int, season: str) -> pd.DataFrame:
-    return data_loader.load_player_game_log(player_id=player_id, season=season)
+def load_player_log(sport: str, player_id: int, season: str) -> pd.DataFrame:
+    """Load player game log for the specified sport."""
+    if sport == "NBA":
+        return data_loader.load_player_game_log(player_id=player_id, season=season)
+    else:
+        loader = DataLoaderFactory.create_loader(sport)
+        return loader.load_player_game_log(player_id=player_id, season=season)
 
 
 @st.cache_data(ttl=900)
-def load_team_log(team_id: int, season: str) -> pd.DataFrame:
-    return data_loader.load_team_game_log(team_id=team_id, season=season)
+def load_team_log(sport: str, team_id: int, season: str) -> pd.DataFrame:
+    """Load team game log for the specified sport."""
+    if sport == "NBA":
+        return data_loader.load_team_game_log(team_id=team_id, season=season)
+    else:
+        loader = DataLoaderFactory.create_loader(sport)
+        return loader.load_team_game_log(team_id=team_id, season=season)
 
 
-seasons = ["2023-24", "2022-23", "2021-22"]
 
+# Sidebar configuration with sport selector
 with st.sidebar:
-    st.markdown("## League Settings")
-    league = st.selectbox("League", ["NBA"], index=0)
+    st.markdown("## 🏆 Sport Selection")
+    
+    # Sport selector with improved UI
+    available_sports = SportConfig.get_available_sports()
+    sport_labels = {
+        "NBA": "🏀 NBA Basketball",
+        "NHL": "🏒 NHL Hockey"
+    }
+    
+    selected_sport_label = st.radio(
+        "Select Sport",
+        options=[sport_labels[s] for s in available_sports],
+        index=0,
+        label_visibility="collapsed"
+    )
+    
+    # Extract sport code from label
+    sport = "NBA" if "NBA" in selected_sport_label else "NHL"
+    st.session_state.sport = sport
+    
+    # Get sport-specific configuration
+    sport_config = SportConfig.get_sport_config(sport)
+    
+    st.markdown("---")
+    st.markdown("## 📊 League Settings")
+    
+    # Season selection
+    seasons = sport_config["seasons"]
     season = st.selectbox("Season", seasons, index=0, format_func=format_season_label)
 
-    teams_df = load_active_teams()
+    # Load teams for selected sport
+    teams_df = load_active_teams(sport)
     if teams_df.empty:
-        st.error("Unable to load teams. Please check your NBA API connectivity.")
+        st.error(f"Unable to load {sport} teams. Please check your connectivity.")
         st.stop()
     team_name = st.selectbox("Team", teams_df["full_name"].sort_values().tolist())
 
-    players_df = load_active_players()
-    if players_df.empty:
-        st.error("Unable to load players. Please check your NBA API connectivity.")
-        st.stop()
-    player_name = st.selectbox("Player", players_df["full_name"].sort_values().tolist())
+    # Load players for selected sport
+    players_df = load_active_players(sport)
+    
+    # For NHL, show a message about player data
+    if sport == "NHL" and players_df.empty:
+        st.info("🚧 NHL player data is being loaded. Currently showing teams only.")
+        st.markdown("*Full NHL player integration coming soon*")
+        # Create a dummy player for demo purposes
+        player_name = "Demo Player"
+    else:
+        if players_df.empty:
+            st.error(f"Unable to load {sport} players. Please check your connectivity.")
+            st.stop()
+        player_name = st.selectbox("Player", players_df["full_name"].sort_values().tolist())
 
 
-st.markdown("<div class='signal-title'>Signal Sports Analytics</div>", unsafe_allow_html=True)
+# Apply glassmorphism CSS based on selected sport
+st.markdown(get_glassmorphism_css(sport), unsafe_allow_html=True)
+
+
+# Hero Section with Sport-Specific Branding
 st.markdown(
-    "<div class='signal-subtitle'>Bloomberg-grade NBA intelligence for performance, fatigue, and trends.</div>",
+    f"""
+    <div class='hero-section fade-in'>
+        <div class='sport-badge'>{sport_config['display_name']}</div>
+        <div class='signal-title'>Signal Sports Analytics</div>
+        <div class='signal-subtitle'>
+            Bloomberg-grade {sport} intelligence for performance, fatigue, and trends.
+        </div>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
-player_id = data_loader.get_player_id(player_name)
-team_id = data_loader.get_team_id(team_name)
 
+# Get player and team IDs (NBA only for now, NHL will be implemented)
+if sport == "NBA":
+    player_id = data_loader.get_player_id(player_name)
+    team_id = data_loader.get_team_id(team_name)
+else:  # NHL
+    # For demo purposes, use placeholder
+    player_id = None
+    loader = DataLoaderFactory.create_loader(sport)
+    team_id = loader.get_team_id(team_name)
+
+
+# Skip detailed analytics for NHL demo (data not available yet)
+if sport == "NHL":
+    st.info("🚧 **NHL Analytics Dashboard Coming Soon!**")
+    st.markdown("""
+    ### Planned NHL Features:
+    - **Skater Metrics**: Goals, Assists, Points, +/-, Shots, Time on Ice, Faceoff %, Hits, Blocks
+    - **Goalie Metrics**: Saves, Save %, GAA, Shutouts, Quality Starts
+    - **Advanced Stats**: Corsi, Fenwick, Expected Goals (xG), PDO, CF%
+    - **Team Analysis**: Power play/penalty kill stats, lineup combinations
+    - **Heat Maps**: Ice time distribution, shooting locations
+    - **Game Flow**: Score effects, momentum tracking
+    
+    *NHL data integration is in progress. Select NBA to see the full analytics platform.*
+    """)
+    
+    # Show team info for NHL
+    st.markdown(f"### 🏒 {team_name}")
+    st.markdown(f"**Season:** {season}")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Team ID", team_id if team_id else "N/A")
+    with col2:
+        st.metric("Conference", "TBD")
+    with col3:
+        st.metric("Division", "TBD")
+    
+    st.caption("Signal Sports Analytics • Multi-Sport Platform in Development")
+    st.stop()
+
+
+# NBA Analytics (existing functionality)
 if player_id is None:
     st.error("Player not found. Try another selection.")
     st.stop()
 
 with st.spinner("Loading player analytics..."):
-    player_log = load_player_log(player_id, season)
+    player_log = load_player_log(sport, player_id, season)
 if player_log.empty:
     st.warning("No game log data available for this player/season.")
 
-league_stats = load_league_stats(season)
+league_stats = load_league_stats(sport, season)
 
 team_log = pd.DataFrame()
 if team_id is not None:
-    team_log = load_team_log(team_id, season)
+    team_log = load_team_log(sport, team_id, season)
 
 
+# Enhanced metric cards with animation
+st.markdown("<div class='section-header'>📈 Performance Metrics</div>", unsafe_allow_html=True)
 metrics_cols = st.columns(4)
 if not player_log.empty:
     points_avg = safe_mean(player_log["PTS"])
