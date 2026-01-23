@@ -149,7 +149,7 @@ with left_col:
         latest_game = team_log.sort_values("GAME_DATE").iloc[-1]
         
         # Safely calculate rest days with null checking
-        game_date = latest_game.get("GAME_DATE")
+        game_date = latest_game["GAME_DATE"]
         if pd.notna(game_date):
             try:
                 game_date_ts = pd.Timestamp(game_date)
